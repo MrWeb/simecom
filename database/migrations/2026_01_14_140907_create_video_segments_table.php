@@ -13,7 +13,14 @@ return new class extends Migration
     {
         Schema::create('video_segments', function (Blueprint $table) {
             $table->id();
+            $table->string('slug')->unique(); // benvenuto, offerta_1, offerta_2, ..., fine_1, fine_2
+            $table->string('category'); // intro, offerta, bolletta, prodotti, amico, fine
+            $table->string('file_path'); // path S3
+            $table->integer('duration_seconds')->nullable();
+            $table->boolean('active')->default(true);
             $table->timestamps();
+
+            $table->index('category');
         });
     }
 
