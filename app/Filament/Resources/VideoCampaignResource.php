@@ -6,9 +6,6 @@ use App\Filament\Resources\VideoCampaignResource\Pages;
 use App\Jobs\SendCampaignEmailJob;
 use App\Models\VideoCampaign;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Forms\Components;
@@ -62,11 +59,11 @@ class VideoCampaignResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('email')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('customer_name')
                     ->label('Cliente')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('video_type')
@@ -119,10 +116,6 @@ class VideoCampaignResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->placeholder('Mai'),
-                TextColumn::make('created_at')
-                    ->label('Creata')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('video_status')
@@ -166,13 +159,9 @@ class VideoCampaignResource extends Resource
                     ->visible(fn (VideoCampaign $record): bool => $record->video_status === 'ready')
                     ->url(fn (VideoCampaign $record): string => $record->getLandingUrl())
                     ->openUrlInNewTab(),
-                ViewAction::make(),
             ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
+            ->bulkActions([])
+            ->recordUrl(null)
             ->defaultSort('created_at', 'desc');
     }
 

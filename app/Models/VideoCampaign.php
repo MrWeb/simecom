@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -27,6 +28,13 @@ class VideoCampaign extends Model
         'email_sent_at' => 'datetime',
         'opened_at' => 'datetime',
     ];
+
+    protected function customerName(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value) => ucwords(strtolower($value)),
+        );
+    }
 
     protected static function booted(): void
     {

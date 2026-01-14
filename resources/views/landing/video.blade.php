@@ -152,7 +152,9 @@
 </head>
 <body>
     <div class="header">
-        <img src="/logo_simecom.png" alt="Simecom">
+        <a href="https://www.simecom.it/" target="_blank">
+            <img src="/logo_simecom.png" alt="Simecom">
+        </a>
     </div>
 
     <div class="container">
