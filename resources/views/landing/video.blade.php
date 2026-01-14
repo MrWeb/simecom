@@ -19,7 +19,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 100px 20px 20px;
         }
 
         .container {
@@ -129,11 +129,32 @@
             text-align: center;
             margin-top: 30px;
             color: #64748b;
-            font-size: 0.875rem;
+            font-size: 0.7rem;
+            line-height: 1.5;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #f0f5fa;
+            padding: 15px 20px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .header img {
+            height: 50px;
+            width: auto;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <img src="/logo_simecom.png" alt="Simecom">
+    </div>
+
     <div class="container">
         <div class="greeting">
             <h1>Ciao <span>{{ ucwords(strtolower($campaign->customer_name)) }}</span>!</h1>
@@ -153,7 +174,9 @@
         </div>
 
         <div class="footer">
-            <p>Video creato appositamente per te</p>
+            <p>Simecom S.R.L. – soggetta a direzione e coordinamento di Sime Partecipazioni S.p.A.<br>
+            Sede legale: via Nelson Mandela, 1 – 26010 Vaiano Cremasco (CR) – Cap. € 1.000.000,00 i.v.<br>
+            C.C.I.A.A. R.E.A. N. 157175 – C.F./P.Iva 01274520194 – Registro Imprese di Cremona n. 01274520194</p>
         </div>
     </div>
 
