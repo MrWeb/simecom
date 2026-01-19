@@ -120,11 +120,11 @@ class ProcessExcelJob implements ShouldQueue
         return [
             'benvenuto',
             $videoSegment,
-            'boletta-digitale',
+            'bolletta-digitale',
             'porta-un-amico',
             'prodotti',
             'bolletta-digitale-2',
-            'fine-' . $tipoFinale,
+            'fine-1', // . $tipoFinale,
         ];
     }
 
