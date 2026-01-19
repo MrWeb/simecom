@@ -33,7 +33,7 @@ class BrevoApiTransport implements TransportInterface
             'to' => array_map(function ($address) {
                 return [
                     'email' => $address->getAddress(),
-                    'name' => $address->getName(),
+                    'name' => $address->getName() ?: $address->getAddress(),
                 ];
             }, $email->getTo()),
             'subject' => $email->getSubject(),
@@ -46,7 +46,7 @@ class BrevoApiTransport implements TransportInterface
             $sendSmtpEmail->setCc(array_map(function ($address) {
                 return [
                     'email' => $address->getAddress(),
-                    'name' => $address->getName(),
+                    'name' => $address->getName() ?: $address->getAddress(),
                 ];
             }, $email->getCc()));
         }
@@ -56,7 +56,7 @@ class BrevoApiTransport implements TransportInterface
             $sendSmtpEmail->setBcc(array_map(function ($address) {
                 return [
                     'email' => $address->getAddress(),
-                    'name' => $address->getName(),
+                    'name' => $address->getName() ?: $address->getAddress(),
                 ];
             }, $email->getBcc()));
         }
