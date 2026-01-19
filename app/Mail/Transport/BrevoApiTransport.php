@@ -6,6 +6,7 @@ use Brevo\Client\Api\TransactionalEmailsApi;
 use Brevo\Client\Configuration;
 use Brevo\Client\Model\SendSmtpEmail;
 use GuzzleHttp\Client;
+use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\MessageConverter;
@@ -63,7 +64,9 @@ class BrevoApiTransport implements TransportInterface
 
         $this->api->sendTransacEmail($sendSmtpEmail);
 
-        return new SentMessage($message, (string) $this);
+        $envelope = $envelope ?? Envelope::create($email);
+
+        return new SentMessage($message, $envelope);
     }
 
     public function __toString(): string
