@@ -136,7 +136,7 @@ class VideoCampaignResource extends Resource
             ])
             ->actions([
                 Action::make('resend')
-                    ->label('Re-send')
+                    ->label('Rispedisci')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('warning')
                     ->requiresConfirmation()
