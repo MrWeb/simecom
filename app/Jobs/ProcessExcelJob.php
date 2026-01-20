@@ -106,9 +106,10 @@ class ProcessExcelJob implements ShouldQueue
         }
 
         $tipoFinale = ($sesso === 'F') ? 2 : 1;
+        $fatturaWeb = strtoupper($row[$headerMap['fatturaWEB'] ?? $headerMap['fatturaweb'] ?? $headerMap['FATTURAWEB'] ?? 5] ?? 'NO');
 
         // Costruisci la combinazione video
-        $combination = $this->buildVideoCombination($offerCode->video_segment, $tipoFinale);
+        $combination = $this->buildVideoCombination($offerCode->video_segment, $tipoFinale, $fatturaWeb === 'SI');
 
         return VideoCampaign::create([
             'email' => $email,
@@ -120,17 +121,28 @@ class ProcessExcelJob implements ShouldQueue
         ]);
     }
 
-    protected function buildVideoCombination(string $videoSegment, int $tipoFinale): array
+    protected function buildVideoCombination(string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array
     {
-        return [
+        $combination = [
             'benvenuto',
             $videoSegment,
-            'bolletta-digitale',
-            'porta-un-amico',
-            'prodotti',
-            'bolletta-digitale-2',
-            'fine-1', // . $tipoFinale,
         ];
+
+        if (!$hasFatturaWeb) {
+            $combination[] = 'bolletta-digitale';
+        }
+
+        $combination[] = 'porta-un-amico';
+        $combination[] = 'prodotti';
+
+        if (!$hasFatturaWeb) {
+            $combination[] = 'bolletta-digitale-2';
+        }else{
+            $combination[] = 'fine-1'; // . $tipoFinale
+        }
+
+
+        return $combination;
     }
 
     protected function readFile(string $fullPath): array

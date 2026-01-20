@@ -20,7 +20,7 @@ class VideoCampaignMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Il tuo video personalizzato',
+            subject: 'Benvenuto in Simecom - Apri la mail e guarda il video',
         );
     }
 
