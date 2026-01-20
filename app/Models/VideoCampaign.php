@@ -14,6 +14,8 @@ class VideoCampaign extends Model
         'customer_name',
         'video_combination',
         'video_type',
+        'offer_code',
+        'offer_name',
         'video_hash',
         'video_path',
         'video_status',

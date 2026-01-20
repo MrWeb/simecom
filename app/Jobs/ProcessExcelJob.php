@@ -115,6 +115,8 @@ class ProcessExcelJob implements ShouldQueue
             'customer_name' => $customerName,
             'video_combination' => $combination,
             'video_type' => $offerCode->type,
+            'offer_code' => $offerCode->code,
+            'offer_name' => $offerCode->offer_name,
         ]);
     }
 

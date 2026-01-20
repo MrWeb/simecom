@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Forms\Components;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -75,6 +76,16 @@ class VideoCampaignResource extends Resource
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                IconColumn::make('offer_code')
+                    ->label('Cod.')
+                    ->icon('heroicon-o-hashtag')
+                    ->color('gray')
+                    ->tooltip(fn (VideoCampaign $record): ?string => $record->offer_code),
+                IconColumn::make('offer_name')
+                    ->label('Offerta')
+                    ->icon('heroicon-o-tag')
+                    ->color('gray')
+                    ->tooltip(fn (VideoCampaign $record): ?string => $record->offer_name),
                 TextColumn::make('video_status')
                     ->label('Video')
                     ->badge()
