@@ -46,8 +46,8 @@ class VideoService
         // Concatena con FFMPEG
         $this->concatenateWithDemuxer($concatListPath, $outputPath);
 
-        // Rimuovi file concat temporaneo
-        unlink($concatListPath);
+        // Rimuovi file concat temporaneo (@ per evitare errori se già cancellato da job parallelo)
+        @unlink($concatListPath);
 
         return "videos/generated/{$outputFilename}";
     }

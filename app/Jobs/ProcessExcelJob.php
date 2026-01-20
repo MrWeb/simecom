@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\OfferCode;
+use App\Models\SkippedImport;
 use App\Models\VideoCampaign;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -45,9 +46,13 @@ class ProcessExcelJob implements ShouldQueue
         $processed = 0;
         $reused = 0;
 
-        foreach ($rows as $row) {
+        $sourceFileName = basename($this->filePath);
+
+        foreach ($rows as $rowIndex => $row) {
+            $rowNumber = $rowIndex + 2; // +2 perché: +1 per header, +1 perché gli array partono da 0
+
             try {
-                $campaign = $this->processRow($row, $headerMap);
+                $campaign = $this->processRow($row, $headerMap, $header, $sourceFileName, $rowNumber);
 
                 if ($campaign) {
                     $processed++;
@@ -82,7 +87,7 @@ class ProcessExcelJob implements ShouldQueue
         ]);
     }
 
-    protected function processRow(array $row, array $headerMap): ?VideoCampaign
+    protected function processRow(array $row, array $headerMap, array $header, string $sourceFile, int $rowNumber): ?VideoCampaign
     {
         // Mappatura colonne dal file Simecom
         $email = $row[$headerMap['MAIL'] ?? $headerMap['mail'] ?? 0] ?? null;
@@ -91,17 +96,43 @@ class ProcessExcelJob implements ShouldQueue
         $codiceOfferta = $row[$headerMap['CODOF'] ?? $headerMap['codof'] ?? 3] ?? '';
         $sesso = $row[$headerMap['SEX'] ?? $headerMap['sex'] ?? 4] ?? 'M';
 
-        if (empty($email)) {
+        $customerName = trim("{$nome} {$cognome}");
+
+        // Se cliente, email e codice offerta sono tutti vuoti, ignora la riga
+        if (empty($email) && empty($customerName) && empty($codiceOfferta)) {
             return null;
         }
 
-        $customerName = trim("{$nome} {$cognome}");
+        // Costruisci row_data associativo per riferimento
+        $rowData = array_combine($header, $row);
+
+        if (empty($email)) {
+            SkippedImport::create([
+                'source_file' => $sourceFile,
+                'row_number' => $rowNumber,
+                'row_data' => $rowData,
+                'error_type' => 'missing_email',
+                'offer_code' => $codiceOfferta ?: null,
+                'email' => null,
+                'customer_name' => $customerName ?: null,
+            ]);
+            return null;
+        }
 
         // Cerca il codice offerta nella tabella
         $offerCode = OfferCode::findByCode($codiceOfferta);
 
         if (!$offerCode) {
             Log::warning('Codice offerta non trovato', ['codice' => $codiceOfferta]);
+            SkippedImport::create([
+                'source_file' => $sourceFile,
+                'row_number' => $rowNumber,
+                'row_data' => $rowData,
+                'error_type' => 'missing_offer_code',
+                'offer_code' => $codiceOfferta ?: null,
+                'email' => $email,
+                'customer_name' => $customerName ?: null,
+            ]);
             return null;
         }
 
@@ -140,7 +171,6 @@ class ProcessExcelJob implements ShouldQueue
         }else{
             $combination[] = 'fine-1'; // . $tipoFinale
         }
-
 
         return $combination;
     }
