@@ -22,7 +22,8 @@ class GenerateVideoJob implements ShouldQueue
     public int $backoff = 120;
 
     public function __construct(
-        protected VideoCampaign $campaign
+        protected VideoCampaign $campaign,
+        protected bool $skipEmail = false
     ) {}
 
     public function handle(VideoService $videoService): void
@@ -38,7 +39,9 @@ class GenerateVideoJob implements ShouldQueue
                     'campaign_id' => $this->campaign->id,
                     'reused_from' => $existing->id,
                 ]);
-                SendCampaignEmailJob::dispatch($this->campaign);
+                if (!$this->skipEmail) {
+                    SendCampaignEmailJob::dispatch($this->campaign);
+                }
                 return;
             }
 
@@ -55,8 +58,10 @@ class GenerateVideoJob implements ShouldQueue
                 'video_path' => $s3Path,
             ]);
 
-            // Dispatcha job per invio email
-            SendCampaignEmailJob::dispatch($this->campaign);
+            // Dispatcha job per invio email (unless skipped)
+            if (!$this->skipEmail) {
+                SendCampaignEmailJob::dispatch($this->campaign);
+            }
 
         } catch (\Exception $e) {
             $this->campaign->update(['video_status' => 'failed']);

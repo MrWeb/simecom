@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class ImportExcelCommand extends Command
 {
-    protected $signature = 'campaign:import {file : Path to Excel file (relative to storage/app or absolute)}';
+    protected $signature = 'campaign:import {file : Path to Excel file (relative to storage/app or absolute)} {--skip-email : Skip sending emails, only generate videos}';
 
     protected $description = 'Import campaigns from a local Excel file';
 
@@ -28,9 +28,14 @@ class ImportExcelCommand extends Command
             return 1;
         }
 
-        $this->info("Processing: {$fullPath}");
+        $skipEmail = $this->option('skip-email');
 
-        ProcessExcelJob::dispatch($fullPath);
+        $this->info("Processing: {$fullPath}");
+        if ($skipEmail) {
+            $this->info('Email sending will be skipped (video only mode)');
+        }
+
+        ProcessExcelJob::dispatch($fullPath, $skipEmail);
 
         $this->info('Job dispatched to queue!');
 

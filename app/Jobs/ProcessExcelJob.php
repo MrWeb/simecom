@@ -19,7 +19,8 @@ class ProcessExcelJob implements ShouldQueue
     public int $tries = 1;
 
     public function __construct(
-        protected string $filePath
+        protected string $filePath,
+        protected bool $skipEmail = false
     ) {}
 
     public function handle(): void
@@ -57,11 +58,13 @@ class ProcessExcelJob implements ShouldQueue
                     if ($existing) {
                         $campaign->reuseVideoFrom($existing);
                         $reused++;
-                        // Video ready, dispatch email job
-                        SendCampaignEmailJob::dispatch($campaign);
+                        // Video ready, dispatch email job (unless skipped)
+                        if (!$this->skipEmail) {
+                            SendCampaignEmailJob::dispatch($campaign);
+                        }
                     } else {
                         // Need to generate new video
-                        GenerateVideoJob::dispatch($campaign);
+                        GenerateVideoJob::dispatch($campaign, $this->skipEmail);
                     }
                 }
             } catch (\Exception $e) {
