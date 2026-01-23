@@ -73,16 +73,23 @@ class VideoCampaignResource extends Resource
                     ->label('Cliente')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('email')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('N/A'),
-                TextColumn::make('phone')
-                    ->label('Telefono')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('N/A')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('recapito')
+                    ->label('Recapito')
+                    ->getStateUsing(fn (VideoCampaign $record): string =>
+                        $record->email ?: $record->phone ?: 'N/A'
+                    )
+                    ->icon(fn (VideoCampaign $record): string =>
+                        $record->email ? 'heroicon-o-envelope' : ($record->phone ? 'heroicon-o-phone' : 'heroicon-o-x-mark')
+                    )
+                    ->color(fn (VideoCampaign $record): string =>
+                        $record->email ? 'primary' : ($record->phone ? 'success' : 'gray')
+                    )
+                    ->searchable(query: function ($query, string $search): void {
+                        $query->where('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->copyable()
+                    ->copyMessage('Copiato!'),
                 TextColumn::make('video_type')
                     ->label('Tipo')
                     ->badge()

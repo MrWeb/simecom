@@ -36,46 +36,82 @@ class OfferCodeResource extends Resource
     {
         return $schema
             ->components([
-                Components\TextInput::make('code')
-                    ->label('Codice')
-                    ->required()
-                    ->unique(ignoreRecord: true),
-                Components\TextInput::make('offer_name')
-                    ->label('Nome Offerta'),
-                Components\Select::make('video_segment')
-                    ->label('Segmento Video')
-                    ->options([
-                        'Luce' => [
-                            'offerta-sos-bee' => 'SOS Bee',
-                            'offerta-easy-click' => 'Easy Click',
-                            'offerta-prezzo-chiaro' => 'Prezzo Chiaro',
-                            'offerta-zero-rischi' => 'Zero Rischi',
-                            'offerta-led-collection' => 'Led Collection',
-                            'offerta-seguimi' => 'Seguimi',
-                            'offerta-seconda-casa' => 'Seconda Casa',
-                        ],
-                        'Gas' => [
-                            'offerta-sos-bee' => 'SOS Bee',
-                            'offerta-easy-click' => 'Easy Click',
-                            'offerta-green-planet' => 'Green Planet',
-                            'offerta-zero-rischi' => 'Zero Rischi',
-                            'offerta-turbo-green' => 'Turbo Green',
-                            'offerta-dinamica' => 'Dinamica',
-                            'offerta-seconda-casa' => 'Seconda Casa',
-                        ],
-                    ])
-                    ->required(),
-                Components\Select::make('type')
-                    ->label('Tipo')
-                    ->options([
-                        'luce' => 'Luce',
-                        'gas' => 'Gas',
-                    ])
-                    ->required()
-                    ->default('luce'),
-                Components\Toggle::make('active')
-                    ->label('Attivo')
-                    ->default(true),
+                Components\Section::make('Informazioni Codice')
+                    ->description('Dati identificativi del codice offerta')
+                    ->icon('heroicon-o-identification')
+                    ->columns(2)
+                    ->schema([
+                        Components\TextInput::make('code')
+                            ->label('Codice')
+                            ->placeholder('Es: NV2508EDSPUN3FA')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(50)
+                            ->prefixIcon('heroicon-o-key'),
+                        Components\TextInput::make('offer_name')
+                            ->label('Nome Offerta')
+                            ->placeholder('Es: SOS BEE CASA')
+                            ->maxLength(100)
+                            ->prefixIcon('heroicon-o-tag'),
+                    ]),
+
+                Components\Section::make('Configurazione Video')
+                    ->description('Associazione al segmento video e tipologia')
+                    ->icon('heroicon-o-film')
+                    ->columns(2)
+                    ->schema([
+                        Components\Select::make('type')
+                            ->label('Tipologia')
+                            ->options([
+                                'luce' => 'Luce',
+                                'gas' => 'Gas',
+                            ])
+                            ->required()
+                            ->default('luce')
+                            ->native(false)
+                            ->prefixIcon('heroicon-o-bolt')
+                            ->live(),
+                        Components\Select::make('video_segment')
+                            ->label('Segmento Video')
+                            ->options(fn (Components\Select $component) =>
+                                match ($component->getContainer()->getParentComponent()?->getContainer()->getRawState()['type'] ?? 'luce') {
+                                    'gas' => [
+                                        'offerta-sos-bee' => 'SOS Bee',
+                                        'offerta-easy-click' => 'Easy Click',
+                                        'offerta-green-planet' => 'Green Planet',
+                                        'offerta-zero-rischi' => 'Zero Rischi',
+                                        'offerta-turbo-green' => 'Turbo Green',
+                                        'offerta-dinamica' => 'Dinamica',
+                                        'offerta-seconda-casa' => 'Seconda Casa',
+                                    ],
+                                    default => [
+                                        'offerta-sos-bee' => 'SOS Bee',
+                                        'offerta-easy-click' => 'Easy Click',
+                                        'offerta-prezzo-chiaro' => 'Prezzo Chiaro',
+                                        'offerta-zero-rischi' => 'Zero Rischi',
+                                        'offerta-led-collection' => 'Led Collection',
+                                        'offerta-seguimi' => 'Seguimi',
+                                        'offerta-seconda-casa' => 'Seconda Casa',
+                                    ],
+                                }
+                            )
+                            ->required()
+                            ->native(false)
+                            ->prefixIcon('heroicon-o-play-circle')
+                            ->searchable(),
+                    ]),
+
+                Components\Section::make('Stato')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->schema([
+                        Components\Toggle::make('active')
+                            ->label('Codice Attivo')
+                            ->helperText('Se disattivato, il codice non verrà riconosciuto durante l\'importazione')
+                            ->default(true)
+                            ->onColor('success')
+                            ->offColor('danger')
+                            ->inline(false),
+                    ]),
             ]);
     }
 
