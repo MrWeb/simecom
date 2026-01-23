@@ -6,6 +6,7 @@ use App\Models\VideoSegment;
 use Filament\Forms\Components;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 class VideoSegmentForm
@@ -65,22 +66,14 @@ class VideoSegmentForm
                         // Mostra info file attuale in edit
                         Components\Placeholder::make('current_file_info')
                             ->label('File Attuale')
-                            ->content(fn ($record): string => $record?->fileExists()
-                                ? "✓ {$record->filename} (presente in videos/{$record->type}/)"
-                                : '✗ File non trovato'
-                            )
+                            ->content(fn ($record): HtmlString => new HtmlString(
+                                $record?->fileExists()
+                                    ? "<span class='text-success-600 dark:text-success-400'>✓ {$record->filename}</span>
+                                       <span class='text-gray-500'>(videos/{$record->type}/)</span>
+                                       <a href='{$record->getUrl()}' target='_blank' class='ml-2 text-primary-600 hover:underline'>Apri video →</a>"
+                                    : "<span class='text-danger-600 dark:text-danger-400'>✗ File non trovato</span>"
+                            ))
                             ->visible(fn ($record): bool => $record !== null),
-
-                        // Link per aprire il video attuale
-                        Components\Actions::make([
-                            Components\Actions\Action::make('view_video')
-                                ->label('Apri Video')
-                                ->icon('heroicon-o-play')
-                                ->color('info')
-                                ->url(fn ($record): string => $record?->getUrl() ?? '#')
-                                ->openUrlInNewTab()
-                                ->visible(fn ($record): bool => $record?->fileExists() ?? false),
-                        ])->visible(fn ($record): bool => $record?->fileExists() ?? false),
 
                         Components\FileUpload::make('filename')
                             ->label(fn ($record) => $record ? 'Sostituisci Video' : 'Video')

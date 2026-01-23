@@ -22,6 +22,16 @@ class VideoSegment extends Model
     ];
 
     /**
+     * Normalizza il filename per salvare solo il nome del file (senza path).
+     */
+    protected function filename(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn ($value) => $value ? basename($value) : $value,
+        );
+    }
+
+    /**
      * Ritorna il path completo del file video.
      */
     public function getFilePath(): string
