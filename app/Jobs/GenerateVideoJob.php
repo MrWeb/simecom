@@ -23,7 +23,7 @@ class GenerateVideoJob implements ShouldQueue
 
     public function __construct(
         protected VideoCampaign $campaign,
-        protected bool $skipEmail = false
+        protected bool $skipSend = false
     ) {}
 
     public function handle(VideoService $videoService): void
@@ -39,8 +39,8 @@ class GenerateVideoJob implements ShouldQueue
                     'campaign_id' => $this->campaign->id,
                     'reused_from' => $existing->id,
                 ]);
-                if (!$this->skipEmail) {
-                    SendCampaignEmailJob::dispatch($this->campaign);
+                if (!$this->skipSend) {
+                    $this->dispatchNotificationJob();
                 }
                 return;
             }
@@ -58,9 +58,9 @@ class GenerateVideoJob implements ShouldQueue
                 'video_path' => $s3Path,
             ]);
 
-            // Dispatcha job per invio email (unless skipped)
-            if (!$this->skipEmail) {
-                SendCampaignEmailJob::dispatch($this->campaign);
+            // Dispatcha job per invio notifica (email o SMS)
+            if (!$this->skipSend) {
+                $this->dispatchNotificationJob();
             }
 
         } catch (\Exception $e) {
@@ -72,6 +72,21 @@ class GenerateVideoJob implements ShouldQueue
             ]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Dispatcha il job di notifica appropriato (email o SMS).
+     * Priorità: email > SMS
+     */
+    protected function dispatchNotificationJob(): void
+    {
+        $channel = $this->campaign->getPreferredChannel();
+
+        if ($channel === 'email') {
+            SendCampaignEmailJob::dispatch($this->campaign);
+        } elseif ($channel === 'sms') {
+            SendCampaignSmsJob::dispatch($this->campaign);
         }
     }
 }

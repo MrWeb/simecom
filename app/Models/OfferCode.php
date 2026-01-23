@@ -25,7 +25,7 @@ class OfferCode extends Model
             ->first();
     }
 
-    public static function getVideoSegment(string $code, string $default = 'offerta-1'): string
+    public static function getVideoSegment(string $code, string $default = 'offerta-sos-bee'): string
     {
         $offer = self::findByCode($code);
         return $offer?->video_segment ?? $default;

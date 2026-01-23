@@ -45,13 +45,24 @@ class OfferCodeResource extends Resource
                 Components\Select::make('video_segment')
                     ->label('Segmento Video')
                     ->options([
-                        'offerta-1' => 'Offerta 1',
-                        'offerta-2' => 'Offerta 2',
-                        'offerta-3' => 'Offerta 3',
-                        'offerta-4' => 'Offerta 4',
-                        'offerta-5' => 'Offerta 5',
-                        'offerta-6' => 'Offerta 6',
-                        'offerta-7' => 'Offerta 7',
+                        'Luce' => [
+                            'offerta-sos-bee' => 'SOS Bee',
+                            'offerta-easy-click' => 'Easy Click',
+                            'offerta-prezzo-chiaro' => 'Prezzo Chiaro',
+                            'offerta-zero-rischi' => 'Zero Rischi',
+                            'offerta-led-collection' => 'Led Collection',
+                            'offerta-seguimi' => 'Seguimi',
+                            'offerta-seconda-casa' => 'Seconda Casa',
+                        ],
+                        'Gas' => [
+                            'offerta-sos-bee' => 'SOS Bee',
+                            'offerta-easy-click' => 'Easy Click',
+                            'offerta-green-planet' => 'Green Planet',
+                            'offerta-zero-rischi' => 'Zero Rischi',
+                            'offerta-turbo-green' => 'Turbo Green',
+                            'offerta-dinamica' => 'Dinamica',
+                            'offerta-seconda-casa' => 'Seconda Casa',
+                        ],
                     ])
                     ->required(),
                 Components\Select::make('type')
@@ -99,13 +110,16 @@ class OfferCodeResource extends Resource
                 SelectFilter::make('video_segment')
                     ->label('Segmento Video')
                     ->options([
-                        'offerta-1' => 'Offerta 1',
-                        'offerta-2' => 'Offerta 2',
-                        'offerta-3' => 'Offerta 3',
-                        'offerta-4' => 'Offerta 4',
-                        'offerta-5' => 'Offerta 5',
-                        'offerta-6' => 'Offerta 6',
-                        'offerta-7' => 'Offerta 7',
+                        'offerta-sos-bee' => 'SOS Bee',
+                        'offerta-easy-click' => 'Easy Click',
+                        'offerta-prezzo-chiaro' => 'Prezzo Chiaro (Luce)',
+                        'offerta-green-planet' => 'Green Planet (Gas)',
+                        'offerta-zero-rischi' => 'Zero Rischi',
+                        'offerta-led-collection' => 'Led Collection (Luce)',
+                        'offerta-turbo-green' => 'Turbo Green (Gas)',
+                        'offerta-seguimi' => 'Seguimi (Luce)',
+                        'offerta-dinamica' => 'Dinamica (Gas)',
+                        'offerta-seconda-casa' => 'Seconda Casa',
                     ]),
                 SelectFilter::make('type')
                     ->label('Tipo')

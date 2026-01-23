@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Jobs\GenerateVideoJob;
 use App\Jobs\SendCampaignEmailJob;
+use App\Jobs\SendCampaignSmsJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,6 +17,7 @@ class SkippedImport extends Model
         'error_type',
         'offer_code',
         'email',
+        'phone',
         'customer_name',
         'status',
         'video_campaign_id',
@@ -48,13 +50,15 @@ class SkippedImport extends Model
     /**
      * Riprova l'elaborazione del record scartato.
      * Crea una VideoCampaign e dispatcha i job necessari.
+     * Priorità: email > SMS > skip
      *
-     * @param bool $skipEmail Se true, non invia l'email
+     * @param bool $skipSend Se true, non invia email/SMS
      * @return VideoCampaign|null
      */
-    public function retry(bool $skipEmail = false): ?VideoCampaign
+    public function retry(bool $skipSend = false): ?VideoCampaign
     {
-        if (empty($this->email)) {
+        // Deve avere almeno email o telefono
+        if (empty($this->email) && empty($this->phone)) {
             return null;
         }
 
@@ -74,6 +78,7 @@ class SkippedImport extends Model
 
         $campaign = VideoCampaign::create([
             'email' => $this->email,
+            'phone' => $this->phone,
             'customer_name' => $this->customer_name,
             'video_combination' => $combination,
             'video_type' => $offerCode->type,
@@ -92,14 +97,28 @@ class SkippedImport extends Model
 
         if ($existing) {
             $campaign->reuseVideoFrom($existing);
-            if (!$skipEmail) {
-                SendCampaignEmailJob::dispatch($campaign);
+            if (!$skipSend) {
+                $this->dispatchNotificationJob($campaign);
             }
         } else {
-            GenerateVideoJob::dispatch($campaign, $skipEmail);
+            GenerateVideoJob::dispatch($campaign, $skipSend);
         }
 
         return $campaign;
+    }
+
+    /**
+     * Dispatcha il job di notifica appropriato (email o SMS).
+     */
+    protected function dispatchNotificationJob(VideoCampaign $campaign): void
+    {
+        $channel = $campaign->getPreferredChannel();
+
+        if ($channel === 'email') {
+            SendCampaignEmailJob::dispatch($campaign);
+        } elseif ($channel === 'sms') {
+            SendCampaignSmsJob::dispatch($campaign);
+        }
     }
 
     protected function buildVideoCombination(string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array

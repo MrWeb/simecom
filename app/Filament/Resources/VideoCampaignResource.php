@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\VideoCampaignResource\Pages;
 use App\Jobs\SendCampaignEmailJob;
+use App\Jobs\SendCampaignSmsJob;
 use App\Models\VideoCampaign;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -34,8 +35,9 @@ class VideoCampaignResource extends Resource
         return $schema
             ->components([
                 Components\TextInput::make('email')
-                    ->email()
-                    ->required(),
+                    ->email(),
+                Components\TextInput::make('phone')
+                    ->label('Telefono'),
                 Components\TextInput::make('customer_name')
                     ->required(),
                 Components\Select::make('video_status')
@@ -53,6 +55,13 @@ class VideoCampaignResource extends Resource
                         'failed' => 'Fallita',
                     ])
                     ->disabled(),
+                Components\Select::make('sms_status')
+                    ->options([
+                        'pending' => 'Non inviato',
+                        'sent' => 'Inviato',
+                        'failed' => 'Fallito',
+                    ])
+                    ->disabled(),
             ]);
     }
 
@@ -66,7 +75,14 @@ class VideoCampaignResource extends Resource
                     ->sortable(),
                 TextColumn::make('email')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->placeholder('N/A'),
+                TextColumn::make('phone')
+                    ->label('Telefono')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('N/A')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('video_type')
                     ->label('Tipo')
                     ->badge()
@@ -103,25 +119,48 @@ class VideoCampaignResource extends Resource
                         'failed' => 'Fallito',
                         default => $state,
                     }),
-                TextColumn::make('email_status')
-                    ->label('Email')
+                TextColumn::make('notification_status')
+                    ->label('Notifica')
                     ->badge()
+                    ->getStateUsing(function (VideoCampaign $record): string {
+                        // Mostra lo stato della notifica appropriata (email o SMS)
+                        if (!empty($record->email)) {
+                            return $record->email_status;
+                        }
+                        if (!empty($record->phone)) {
+                            return $record->sms_status;
+                        }
+                        return 'N/A';
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
                         'sent' => 'success',
                         'failed' => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'Non inviata',
-                        'sent' => 'Inviata',
-                        'failed' => 'Fallita',
-                        default => $state,
+                    ->formatStateUsing(function (string $state, VideoCampaign $record): string {
+                        $channel = !empty($record->email) ? 'Email' : (!empty($record->phone) ? 'SMS' : '');
+                        $status = match ($state) {
+                            'pending' => 'Non inviata',
+                            'sent' => 'Inviata',
+                            'failed' => 'Fallita',
+                            default => $state,
+                        };
+                        return $channel ? "{$channel}: {$status}" : 'N/A';
                     }),
-                TextColumn::make('email_sent_at')
+                TextColumn::make('notification_sent_at')
                     ->label('Inviata il')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->getStateUsing(function (VideoCampaign $record): ?string {
+                        if (!empty($record->email) && $record->email_sent_at) {
+                            return $record->email_sent_at->format('d/m/Y H:i');
+                        }
+                        if (!empty($record->phone) && $record->sms_sent_at) {
+                            return $record->sms_sent_at->format('d/m/Y H:i');
+                        }
+                        return null;
+                    })
+                    ->sortable()
+                    ->placeholder('Mai'),
                 TextColumn::make('opened_at')
                     ->label('Aperta il')
                     ->dateTime('d/m/Y H:i')
@@ -144,6 +183,13 @@ class VideoCampaignResource extends Resource
                         'sent' => 'Inviata',
                         'failed' => 'Fallita',
                     ]),
+                SelectFilter::make('sms_status')
+                    ->label('Stato SMS')
+                    ->options([
+                        'pending' => 'Non inviato',
+                        'sent' => 'Inviato',
+                        'failed' => 'Fallito',
+                    ]),
             ])
             ->actions([
                 Action::make('resend')
@@ -151,17 +197,37 @@ class VideoCampaignResource extends Resource
                     ->icon('heroicon-o-paper-airplane')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->modalHeading('Reinvia email')
-                    ->modalDescription('Sei sicuro di voler reinviare l\'email a questo cliente?')
-                    ->visible(fn (VideoCampaign $record): bool => $record->video_status === 'ready')
+                    ->modalHeading(fn (VideoCampaign $record): string =>
+                        !empty($record->email) ? 'Reinvia email' : 'Reinvia SMS'
+                    )
+                    ->modalDescription(fn (VideoCampaign $record): string =>
+                        !empty($record->email)
+                            ? 'Sei sicuro di voler reinviare l\'email a questo cliente?'
+                            : 'Sei sicuro di voler reinviare l\'SMS a questo cliente?'
+                    )
+                    ->visible(fn (VideoCampaign $record): bool =>
+                        $record->video_status === 'ready' && $record->canSend()
+                    )
                     ->action(function (VideoCampaign $record): void {
-                        $record->update(['email_status' => 'pending']);
-                        SendCampaignEmailJob::dispatch($record);
-                        Notification::make()
-                            ->title('Email in coda')
-                            ->body('L\'email verrà reinviata a breve.')
-                            ->success()
-                            ->send();
+                        $channel = $record->getPreferredChannel();
+
+                        if ($channel === 'email') {
+                            $record->update(['email_status' => 'pending']);
+                            SendCampaignEmailJob::dispatch($record);
+                            Notification::make()
+                                ->title('Email in coda')
+                                ->body('L\'email verrà reinviata a breve.')
+                                ->success()
+                                ->send();
+                        } elseif ($channel === 'sms') {
+                            $record->update(['sms_status' => 'pending']);
+                            SendCampaignSmsJob::dispatch($record);
+                            Notification::make()
+                                ->title('SMS in coda')
+                                ->body('L\'SMS verrà reinviato a breve.')
+                                ->success()
+                                ->send();
+                        }
                     }),
                 Action::make('open_video')
                     ->label('Apri Video')

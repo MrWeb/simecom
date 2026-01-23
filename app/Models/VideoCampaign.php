@@ -11,6 +11,7 @@ class VideoCampaign extends Model
     protected $fillable = [
         'uuid',
         'email',
+        'phone',
         'customer_name',
         'video_combination',
         'video_type',
@@ -22,14 +23,42 @@ class VideoCampaign extends Model
         'email_status',
         'email_sent_at',
         'email_service_id',
+        'sms_status',
+        'sms_sent_at',
         'opened_at',
     ];
 
     protected $casts = [
         'video_combination' => 'array',
         'email_sent_at' => 'datetime',
+        'sms_sent_at' => 'datetime',
         'opened_at' => 'datetime',
     ];
+
+    /**
+     * Determina il canale di contatto preferito.
+     * Priorità: email > sms > null
+     */
+    public function getPreferredChannel(): ?string
+    {
+        if (!empty($this->email)) {
+            return 'email';
+        }
+
+        if (!empty($this->phone)) {
+            return 'sms';
+        }
+
+        return null;
+    }
+
+    /**
+     * Verifica se la campagna può essere inviata (ha almeno un canale di contatto).
+     */
+    public function canSend(): bool
+    {
+        return $this->getPreferredChannel() !== null;
+    }
 
     protected function customerName(): Attribute
     {

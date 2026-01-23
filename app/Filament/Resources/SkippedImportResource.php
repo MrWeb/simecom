@@ -40,8 +40,9 @@ class SkippedImportResource extends Resource
                     ->schema([
                         Components\TextInput::make('email')
                             ->email()
-                            ->label('Email')
-                            ->required(),
+                            ->label('Email'),
+                        Components\TextInput::make('phone')
+                            ->label('Telefono'),
                         Components\TextInput::make('customer_name')
                             ->label('Nome Cliente'),
                         Components\Select::make('offer_code')
@@ -103,6 +104,11 @@ class SkippedImportResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->placeholder('Mancante'),
+                TextColumn::make('phone')
+                    ->label('Telefono')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('Mancante'),
                 TextColumn::make('offer_code')
                     ->label('Codice Offerta')
                     ->searchable()
@@ -113,11 +119,13 @@ class SkippedImportResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'missing_email' => 'danger',
+                        'missing_contact' => 'danger',
                         'missing_offer_code' => 'warning',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'missing_email' => 'Email mancante',
+                        'missing_contact' => 'Email e telefono mancanti',
                         'missing_offer_code' => 'Codice offerta non trovato',
                         default => $state,
                     }),
@@ -150,6 +158,7 @@ class SkippedImportResource extends Resource
                     ->label('Tipo Errore')
                     ->options([
                         'missing_email' => 'Email mancante',
+                        'missing_contact' => 'Email e telefono mancanti',
                         'missing_offer_code' => 'Codice offerta non trovato',
                     ]),
                 SelectFilter::make('status')
@@ -173,10 +182,11 @@ class SkippedImportResource extends Resource
                     ->modalDescription('Sei sicuro di voler elaborare questo record e inviare la campagna video?')
                     ->visible(fn (SkippedImport $record): bool => $record->status === 'pending')
                     ->action(function (SkippedImport $record): void {
-                        if (empty($record->email)) {
+                        // Deve avere almeno email o telefono
+                        if (empty($record->email) && empty($record->phone)) {
                             Notification::make()
                                 ->title('Errore')
-                                ->body('Email mancante. Modifica il record prima di elaborare.')
+                                ->body('Email o telefono mancante. Modifica il record prima di elaborare.')
                                 ->danger()
                                 ->send();
                             return;
@@ -194,9 +204,10 @@ class SkippedImportResource extends Resource
                         $campaign = $record->retry();
 
                         if ($campaign) {
+                            $channel = !empty($record->email) ? 'email' : 'SMS';
                             Notification::make()
                                 ->title('Successo')
-                                ->body('Campagna creata e video in elaborazione.')
+                                ->body("Campagna creata e video in elaborazione. Notifica via {$channel}.")
                                 ->success()
                                 ->send();
                         } else {
@@ -246,7 +257,8 @@ class SkippedImportResource extends Resource
                                 continue;
                             }
 
-                            if (empty($record->email) || !OfferCode::findByCode($record->offer_code)) {
+                            // Deve avere almeno email o telefono
+                            if ((empty($record->email) && empty($record->phone)) || !OfferCode::findByCode($record->offer_code)) {
                                 $failed++;
                                 continue;
                             }

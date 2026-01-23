@@ -21,7 +21,7 @@ class ProcessExcelJob implements ShouldQueue
 
     public function __construct(
         protected string $filePath,
-        protected bool $skipEmail = false
+        protected bool $skipSend = false
     ) {}
 
     public function handle(): void
@@ -63,13 +63,13 @@ class ProcessExcelJob implements ShouldQueue
                     if ($existing) {
                         $campaign->reuseVideoFrom($existing);
                         $reused++;
-                        // Video ready, dispatch email job (unless skipped)
-                        if (!$this->skipEmail) {
-                            SendCampaignEmailJob::dispatch($campaign);
+                        // Video ready, dispatch notification job (unless skipped)
+                        if (!$this->skipSend) {
+                            $this->dispatchNotificationJob($campaign);
                         }
                     } else {
                         // Need to generate new video
-                        GenerateVideoJob::dispatch($campaign, $this->skipEmail);
+                        GenerateVideoJob::dispatch($campaign, $this->skipSend);
                     }
                 }
             } catch (\Exception $e) {
@@ -96,24 +96,29 @@ class ProcessExcelJob implements ShouldQueue
         $codiceOfferta = $row[$headerMap['CODOF'] ?? $headerMap['codof'] ?? 3] ?? '';
         $sesso = $row[$headerMap['SEX'] ?? $headerMap['sex'] ?? 4] ?? 'M';
 
+        // Parsing telefono - supporta varie varianti di nome colonna
+        $phone = $this->extractPhone($row, $headerMap);
+
         $customerName = trim("{$nome} {$cognome}");
 
-        // Se cliente, email e codice offerta sono tutti vuoti, ignora la riga
-        if (empty($email) && empty($customerName) && empty($codiceOfferta)) {
+        // Se cliente, email, telefono e codice offerta sono tutti vuoti, ignora la riga
+        if (empty($email) && empty($phone) && empty($customerName) && empty($codiceOfferta)) {
             return null;
         }
 
         // Costruisci row_data associativo per riferimento
         $rowData = array_combine($header, $row);
 
-        if (empty($email)) {
+        // Se mancano sia email che telefono, scarta
+        if (empty($email) && empty($phone)) {
             SkippedImport::create([
                 'source_file' => $sourceFile,
                 'row_number' => $rowNumber,
                 'row_data' => $rowData,
-                'error_type' => 'missing_email',
+                'error_type' => 'missing_contact',
                 'offer_code' => $codiceOfferta ?: null,
                 'email' => null,
+                'phone' => null,
                 'customer_name' => $customerName ?: null,
             ]);
             return null;
@@ -130,7 +135,8 @@ class ProcessExcelJob implements ShouldQueue
                 'row_data' => $rowData,
                 'error_type' => 'missing_offer_code',
                 'offer_code' => $codiceOfferta ?: null,
-                'email' => $email,
+                'email' => $email ?: null,
+                'phone' => $phone ?: null,
                 'customer_name' => $customerName ?: null,
             ]);
             return null;
@@ -143,13 +149,45 @@ class ProcessExcelJob implements ShouldQueue
         $combination = $this->buildVideoCombination($offerCode->video_segment, $tipoFinale, $fatturaWeb === 'SI');
 
         return VideoCampaign::create([
-            'email' => $email,
+            'email' => $email ?: null,
+            'phone' => $phone ?: null,
             'customer_name' => $customerName,
             'video_combination' => $combination,
             'video_type' => $offerCode->type,
             'offer_code' => $offerCode->code,
             'offer_name' => $offerCode->offer_name,
         ]);
+    }
+
+    /**
+     * Estrae il numero di telefono dalla riga, supportando varie varianti di nome colonna.
+     */
+    protected function extractPhone(array $row, array $headerMap): ?string
+    {
+        // Lista di possibili nomi colonna per il telefono
+        $phoneColumns = ['CEL', 'cel', 'TEL', 'tel', 'TELEFONO', 'telefono', 'PHONE', 'phone', 'CELLULARE', 'cellulare', 'CELL', 'cell'];
+
+        foreach ($phoneColumns as $col) {
+            if (isset($headerMap[$col]) && !empty($row[$headerMap[$col]])) {
+                return trim($row[$headerMap[$col]]);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Dispatcha il job di notifica appropriato (email o SMS).
+     */
+    protected function dispatchNotificationJob(VideoCampaign $campaign): void
+    {
+        $channel = $campaign->getPreferredChannel();
+
+        if ($channel === 'email') {
+            SendCampaignEmailJob::dispatch($campaign);
+        } elseif ($channel === 'sms') {
+            SendCampaignSmsJob::dispatch($campaign);
+        }
     }
 
     protected function buildVideoCombination(string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array
