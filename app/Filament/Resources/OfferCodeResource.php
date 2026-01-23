@@ -12,6 +12,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\Resource;
 use Filament\Forms\Components;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -36,7 +37,7 @@ class OfferCodeResource extends Resource
     {
         return $schema
             ->components([
-                Components\Section::make('Informazioni Codice')
+                Section::make('Informazioni Codice')
                     ->description('Dati identificativi del codice offerta')
                     ->icon('heroicon-o-identification')
                     ->columns(2)
@@ -55,7 +56,7 @@ class OfferCodeResource extends Resource
                             ->prefixIcon('heroicon-o-tag'),
                     ]),
 
-                Components\Section::make('Configurazione Video')
+                Section::make('Configurazione Video')
                     ->description('Associazione al segmento video e tipologia')
                     ->icon('heroicon-o-film')
                     ->columns(2)
@@ -73,8 +74,8 @@ class OfferCodeResource extends Resource
                             ->live(),
                         Components\Select::make('video_segment')
                             ->label('Segmento Video')
-                            ->options(fn (Components\Select $component) =>
-                                match ($component->getContainer()->getParentComponent()?->getContainer()->getRawState()['type'] ?? 'luce') {
+                            ->options(fn (callable $get): array =>
+                                match ($get('type')) {
                                     'gas' => [
                                         'offerta-sos-bee' => 'SOS Bee',
                                         'offerta-easy-click' => 'Easy Click',
@@ -101,7 +102,7 @@ class OfferCodeResource extends Resource
                             ->searchable(),
                     ]),
 
-                Components\Section::make('Stato')
+                Section::make('Stato')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->schema([
                         Components\Toggle::make('active')
