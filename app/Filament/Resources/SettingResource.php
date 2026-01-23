@@ -22,11 +22,13 @@ class SettingResource extends Resource
 
     protected static ?string $navigationLabel = 'Impostazioni';
 
+    protected static ?string $navigationGroup = 'Gestione';
+
     protected static ?string $modelLabel = 'Impostazione';
 
     protected static ?string $pluralModelLabel = 'Impostazioni';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

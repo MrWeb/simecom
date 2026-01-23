@@ -28,6 +28,8 @@ class OfferCodeResource extends Resource
 
     protected static ?string $navigationLabel = 'Codici Offerta';
 
+    protected static ?string $navigationGroup = 'Gestione';
+
     protected static ?string $modelLabel = 'Codice Offerta';
 
     protected static ?string $pluralModelLabel = 'Codici Offerta';

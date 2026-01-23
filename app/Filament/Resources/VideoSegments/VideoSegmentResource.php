@@ -20,11 +20,13 @@ class VideoSegmentResource extends Resource
 
     protected static ?string $navigationLabel = 'Segmenti Video';
 
+    protected static ?string $navigationGroup = 'Gestione';
+
     protected static ?string $modelLabel = 'Segmento Video';
 
     protected static ?string $pluralModelLabel = 'Segmenti Video';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {
