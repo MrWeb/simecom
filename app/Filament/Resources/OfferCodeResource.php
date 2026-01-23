@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OfferCodeResource\Pages;
 use App\Models\OfferCode;
+use App\Models\VideoSegment;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -75,26 +76,7 @@ class OfferCodeResource extends Resource
                         Components\Select::make('video_segment')
                             ->label('Segmento Video')
                             ->options(fn (callable $get): array =>
-                                match ($get('type')) {
-                                    'gas' => [
-                                        'offerta-sos-bee' => 'SOS Bee',
-                                        'offerta-easy-click' => 'Easy Click',
-                                        'offerta-green-planet' => 'Green Planet',
-                                        'offerta-zero-rischi' => 'Zero Rischi',
-                                        'offerta-turbo-green' => 'Turbo Green',
-                                        'offerta-dinamica' => 'Dinamica',
-                                        'offerta-seconda-casa' => 'Seconda Casa',
-                                    ],
-                                    default => [
-                                        'offerta-sos-bee' => 'SOS Bee',
-                                        'offerta-easy-click' => 'Easy Click',
-                                        'offerta-prezzo-chiaro' => 'Prezzo Chiaro',
-                                        'offerta-zero-rischi' => 'Zero Rischi',
-                                        'offerta-led-collection' => 'Led Collection',
-                                        'offerta-seguimi' => 'Seguimi',
-                                        'offerta-seconda-casa' => 'Seconda Casa',
-                                    ],
-                                }
+                                VideoSegment::getSelectOptions($get('type'))
                             )
                             ->required()
                             ->native(false)
@@ -146,18 +128,13 @@ class OfferCodeResource extends Resource
             ->filters([
                 SelectFilter::make('video_segment')
                     ->label('Segmento Video')
-                    ->options([
-                        'offerta-sos-bee' => 'SOS Bee',
-                        'offerta-easy-click' => 'Easy Click',
-                        'offerta-prezzo-chiaro' => 'Prezzo Chiaro (Luce)',
-                        'offerta-green-planet' => 'Green Planet (Gas)',
-                        'offerta-zero-rischi' => 'Zero Rischi',
-                        'offerta-led-collection' => 'Led Collection (Luce)',
-                        'offerta-turbo-green' => 'Turbo Green (Gas)',
-                        'offerta-seguimi' => 'Seguimi (Luce)',
-                        'offerta-dinamica' => 'Dinamica (Gas)',
-                        'offerta-seconda-casa' => 'Seconda Casa',
-                    ]),
+                    ->options(fn () => VideoSegment::activeOffers()
+                        ->orderBy('name')
+                        ->get()
+                        ->mapWithKeys(fn ($v) => [$v->slug => "{$v->name} (" . ucfirst($v->type) . ")"])
+                        ->unique()
+                        ->toArray()
+                    ),
                 SelectFilter::make('type')
                     ->label('Tipo')
                     ->options([
