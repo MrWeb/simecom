@@ -20,7 +20,7 @@ class VideoSegmentResource extends Resource
 
     protected static ?string $navigationLabel = 'Segmenti Video';
 
-    protected static ?string $navigationGroup = 'Gestione';
+    protected static \UnitEnum|string|null $navigationGroup = 'Gestione';
 
     protected static ?string $modelLabel = 'Segmento Video';
 

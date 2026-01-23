@@ -22,7 +22,7 @@ class SettingResource extends Resource
 
     protected static ?string $navigationLabel = 'Impostazioni';
 
-    protected static ?string $navigationGroup = 'Gestione';
+    protected static \UnitEnum|string|null $navigationGroup = 'Gestione';
 
     protected static ?string $modelLabel = 'Impostazione';
 
