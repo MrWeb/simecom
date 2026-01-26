@@ -80,7 +80,8 @@ class OfferCodeResource extends Resource
                             ->options(fn (callable $get): array =>
                                 VideoSegment::getSelectOptions($get('type'))
                             )
-                            ->required()
+                            ->placeholder('Usa video base con overlay')
+                            ->helperText('Se vuoto, verrà usato il video base con il nome offerta in sovrapposizione')
                             ->native(false)
                             ->prefixIcon('heroicon-o-play-circle')
                             ->searchable(),
