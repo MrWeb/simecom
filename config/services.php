@@ -38,6 +38,8 @@ return [
     'ffmpeg' => [
         'ffmpeg_path' => env('FFMPEG_PATH', '/usr/bin/ffmpeg'),
         'ffprobe_path' => env('FFPROBE_PATH', '/usr/bin/ffprobe'),
+        'overlay_font' => env('FFMPEG_OVERLAY_FONT', '/System/Library/Fonts/Supplemental/Arial Bold.ttf'),
+        'overlay_fontsize' => env('FFMPEG_OVERLAY_FONTSIZE', 84),
     ],
 
     'ftp' => [

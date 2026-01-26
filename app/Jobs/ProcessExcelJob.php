@@ -190,11 +190,11 @@ class ProcessExcelJob implements ShouldQueue
         }
     }
 
-    protected function buildVideoCombination(string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array
+    protected function buildVideoCombination(?string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array
     {
         $combination = [
             'benvenuto',
-            $videoSegment,
+            $videoSegment ?? '__DYNAMIC_OFFER__',
         ];
 
         if (!$hasFatturaWeb) {

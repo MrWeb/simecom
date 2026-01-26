@@ -74,22 +74,37 @@ class VideoCampaign extends Model
                 $campaign->uuid = Str::uuid()->toString();
             }
             if (empty($campaign->video_hash) && ! empty($campaign->video_combination)) {
-                $campaign->video_hash = self::generateHash($campaign->video_combination, $campaign->video_type ?? 'luce');
+                $campaign->video_hash = self::generateHash(
+                    $campaign->video_combination,
+                    $campaign->video_type ?? 'luce',
+                    $campaign->offer_name
+                );
             }
         });
     }
 
-    public static function generateHash(array $combination, string $type = 'luce'): string
+    public static function generateHash(array $combination, string $type = 'luce', ?string $offerName = null): string
     {
-        return md5($type . '_' . implode('_', $combination));
+        $base = $type . '_' . implode('_', $combination);
+        if (in_array('__DYNAMIC_OFFER__', $combination) && $offerName) {
+            $base .= '_' . $offerName;
+        }
+        return md5($base);
     }
 
     public function findExistingVideo(): ?self
     {
-        return self::where('video_hash', $this->video_hash)
+        $existing = self::where('video_hash', $this->video_hash)
             ->where('video_status', 'ready')
             ->whereNotNull('video_path')
             ->first();
+
+        // Verifica che il file esista realmente
+        if ($existing && !file_exists(storage_path('app/public/' . $existing->video_path))) {
+            return null;
+        }
+
+        return $existing;
     }
 
     public function reuseVideoFrom(self $existing): void

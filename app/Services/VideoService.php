@@ -10,12 +10,14 @@ class VideoService
     protected string $ffmpegPath;
     protected string $segmentsBasePath;
     protected string $generatedPath;
+    protected string $dynamicPath;
 
     public function __construct()
     {
         $this->ffmpegPath = config('services.ffmpeg.ffmpeg_path', '/usr/bin/ffmpeg');
         $this->segmentsBasePath = storage_path('app/public/videos');
         $this->generatedPath = storage_path('app/public/videos/generated');
+        $this->dynamicPath = storage_path('app/public/videos');
     }
 
     public function concatenateForCampaign(VideoCampaign $campaign): string
@@ -30,7 +32,7 @@ class VideoService
 
         // Trova i file dei segmenti
         $videoType = $campaign->video_type ?? 'luce';
-        $segmentPaths = $this->resolveSegmentPaths($campaign->video_combination, $videoType);
+        $segmentPaths = $this->resolveSegmentPaths($campaign->video_combination, $videoType, $campaign->offer_name);
 
         if (empty($segmentPaths)) {
             throw new \RuntimeException('No video segments found for combination');
@@ -52,11 +54,19 @@ class VideoService
         return "videos/generated/{$outputFilename}";
     }
 
-    protected function resolveSegmentPaths(array $slugs, string $videoType): array
+    protected function resolveSegmentPaths(array $slugs, string $videoType, ?string $offerName = null): array
     {
         $paths = [];
 
         foreach ($slugs as $slug) {
+            // Gestione segmento dinamico
+            if ($slug === '__DYNAMIC_OFFER__') {
+                if ($offerName) {
+                    $paths[] = $this->generateDynamicOfferVideo($offerName, $videoType);
+                }
+                continue;
+            }
+
             $found = false;
 
             // Prova varie convenzioni di naming
@@ -81,6 +91,62 @@ class VideoService
         }
 
         return $paths;
+    }
+
+    public function generateDynamicOfferVideo(string $offerName, string $videoType): string
+    {
+        // Hash per caching basato su nome offerta + tipo
+        $hash = md5($offerName . '_' . $videoType);
+        $dynamicDir = "{$this->segmentsBasePath}/{$videoType}/dynamic";
+        $outputPath = "{$dynamicDir}/{$hash}.mp4";
+
+        // Se già esiste, riusa
+        if (file_exists($outputPath)) {
+            return $outputPath;
+        }
+
+        // Crea directory se non esiste
+        if (!is_dir($dynamicDir)) {
+            mkdir($dynamicDir, 0755, true);
+        }
+
+        // Genera con overlay
+        $baseVideo = "{$this->segmentsBasePath}/{$videoType}/offerta.mp4";
+        $this->generateOfferWithOverlay($baseVideo, $outputPath, $offerName);
+
+        return $outputPath;
+    }
+
+    protected function generateOfferWithOverlay(string $inputPath, string $outputPath, string $text): void
+    {
+        $fontPath = config('services.ffmpeg.overlay_font', '/System/Library/Fonts/Supplemental/Arial Bold.ttf');
+        $fontSize = config('services.ffmpeg.overlay_fontsize', 72);
+
+        // Escape testo per FFmpeg e metti ogni parola su una riga
+        $escapedText = str_replace(["'", ":"], ["'\\''", "\\:"], $text);
+        $escapedText = str_replace(" ", "\n", $escapedText);
+
+        $command = sprintf(
+            '%s -i %s -vf "fps=25,format=yuv420p,drawtext=fontfile=%s:text=\'%s\':fontsize=%d:fontcolor=0xFEB51E:borderw=5:bordercolor=white:x=w*0.55:y=(h-text_h)/2:alpha=\'min(min(1\\,t/0.5)\\,min(1\\,(6.67-t)/0.5))\'" -c:v libx264 -profile:v main -level 4.1 -g 25 -preset fast -crf 23 -video_track_timescale 25000 -c:a aac -b:a 128k -ar 48000 %s -y 2>&1',
+            escapeshellarg($this->ffmpegPath),
+            escapeshellarg($inputPath),
+            escapeshellarg($fontPath),
+            $escapedText,
+            $fontSize,
+            escapeshellarg($outputPath)
+        );
+
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0) {
+            Log::error('FFMPEG overlay generation failed', [
+                'command' => $command,
+                'output' => implode("\n", $output),
+            ]);
+            throw new \RuntimeException('FFMPEG overlay generation failed');
+        }
+
+        Log::info('Dynamic offer video generated', ['output' => $outputPath, 'text' => $text]);
     }
 
     protected function concatenateWithDemuxer(string $concatListPath, string $outputPath): void
