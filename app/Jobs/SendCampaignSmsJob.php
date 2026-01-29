@@ -45,7 +45,7 @@ class SendCampaignSmsJob implements ShouldQueue
             $customerName = $this->campaign->customer_name;
 
             // Messaggio SMS breve e conciso
-            $message = "Ciao {$customerName}, il tuo video personalizzato Simecom è pronto! Guardalo qui: {$landingUrl}";
+            $message = "Ciao {$customerName}, abbiamo preparato un video personalizzato esclusivamente per la tua offerta Simecom!\nGuardalo qui: {$landingUrl}";
 
             $result = $smsService->send($this->campaign->phone, $message);
 

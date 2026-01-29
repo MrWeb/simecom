@@ -119,20 +119,42 @@ class VideoService
 
     protected function generateOfferWithOverlay(string $inputPath, string $outputPath, string $text): void
     {
-        $fontPath = config('services.ffmpeg.overlay_font', '/System/Library/Fonts/Supplemental/Arial Bold.ttf');
-        $fontSize = config('services.ffmpeg.overlay_fontsize', 72);
+        $fontPath = config('services.ffmpeg.overlay_font') ?? storage_path('app/fonts/Oswald-Bold.ttf');
+        $fontSize = (int) config('services.ffmpeg.overlay_fontsize', 140);
+        $lineHeight = 160; // Spaziatura tra le righe
 
-        // Escape testo per FFmpeg e metti ogni parola su una riga
-        $escapedText = str_replace(["'", ":"], ["'\\''", "\\:"], $text);
-        $escapedText = str_replace(" ", "\n", $escapedText);
+        // Rimuovi newline/carriage return esistenti e sanitizza il testo
+        $cleanText = str_replace(["\r\n", "\r", "\n"], " ", $text);
+        $cleanText = trim(preg_replace('/\s+/', ' ', $cleanText));
+
+        // Dividi in parole
+        $words = explode(' ', $cleanText);
+        $totalLines = count($words);
+
+        // Calcola posizione Y iniziale per centrare verticalmente
+        $startY = (1080 / 2) - (($totalLines - 1) * $lineHeight / 2);
+
+        // Costruisci i filtri drawtext per ogni parola
+        $drawTextFilters = [];
+        foreach ($words as $index => $word) {
+            $escapedWord = str_replace(["'", ":"], ["'\\''", "\\:"], $word);
+            $yPos = $startY + ($index * $lineHeight);
+            $drawTextFilters[] = sprintf(
+                "drawtext=fontfile=%s:text='%s':fontsize=%d:fontcolor=0xFEB51E:borderw=5:bordercolor=white:x=w*0.45:y=%d:alpha='min(min(1\\,t/0.5)\\,min(1\\,(6.67-t)/0.5))'",
+                escapeshellarg($fontPath),
+                $escapedWord,
+                $fontSize,
+                (int) $yPos
+            );
+        }
+
+        $vf = "fps=25,format=yuv420p," . implode(',', $drawTextFilters);
 
         $command = sprintf(
-            '%s -i %s -vf "fps=25,format=yuv420p,drawtext=fontfile=%s:text=\'%s\':fontsize=%d:fontcolor=0xFEB51E:borderw=5:bordercolor=white:x=w*0.55:y=(h-text_h)/2:alpha=\'min(min(1\\,t/0.5)\\,min(1\\,(6.67-t)/0.5))\'" -c:v libx264 -profile:v main -level 4.1 -g 25 -preset fast -crf 23 -video_track_timescale 25000 -c:a aac -b:a 128k -ar 48000 %s -y 2>&1',
+            '%s -i %s -vf "%s" -c:v libx264 -profile:v main -level 4.1 -g 25 -preset fast -crf 23 -video_track_timescale 25000 -c:a aac -b:a 128k -ar 48000 %s -y 2>&1',
             escapeshellarg($this->ffmpegPath),
             escapeshellarg($inputPath),
-            escapeshellarg($fontPath),
-            $escapedText,
-            $fontSize,
+            $vf,
             escapeshellarg($outputPath)
         );
 
