@@ -119,8 +119,8 @@ class VideoService
 
     protected function generateOfferWithOverlay(string $inputPath, string $outputPath, string $text): void
     {
-        $fontPath = config('services.ffmpeg.overlay_font') ?? storage_path('app/fonts/Oswald-Bold.ttf');
-        $fontSize = (int) config('services.ffmpeg.overlay_fontsize', 140);
+        $fontPath = config('services.ffmpeg.overlay_font');
+        $fontSize = (int) config('services.ffmpeg.overlay_fontsize');
         $lineHeight = 160; // Spaziatura tra le righe
 
         // Rimuovi newline/carriage return esistenti e sanitizza il testo
