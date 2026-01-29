@@ -109,6 +109,11 @@ class VideoCampaignResource extends Resource
                     ->icon('heroicon-o-tag')
                     ->color('gray')
                     ->tooltip(fn (VideoCampaign $record): ?string => $record->offer_name),
+                IconColumn::make('attachment_path')
+                    ->label('PDF')
+                    ->icon(fn (VideoCampaign $record): string => $record->hasAttachment() ? 'heroicon-o-paper-clip' : 'heroicon-o-minus')
+                    ->color(fn (VideoCampaign $record): string => $record->hasAttachment() ? 'success' : 'gray')
+                    ->tooltip(fn (VideoCampaign $record): string => $record->hasAttachment() ? 'Allegato presente' : 'Nessun allegato'),
                 TextColumn::make('video_status')
                     ->label('Video')
                     ->badge()
