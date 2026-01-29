@@ -29,10 +29,10 @@ class EditSkippedImport extends EditRecord
 
                     $record = $this->record->fresh();
 
-                    if (empty($record->email)) {
+                    if (empty($record->email) && empty($record->phone)) {
                         Notification::make()
                             ->title('Errore')
-                            ->body('Email mancante.')
+                            ->body('Email o telefono mancante.')
                             ->danger()
                             ->send();
                         return;
@@ -50,17 +50,21 @@ class EditSkippedImport extends EditRecord
                     $campaign = $record->retry();
 
                     if ($campaign) {
+                        $channel = !empty($record->email) ? 'email' : 'SMS';
                         Notification::make()
                             ->title('Successo')
-                            ->body('Campagna creata e video in elaborazione.')
+                            ->body("Campagna creata e video in elaborazione. Notifica via {$channel}.")
                             ->success()
                             ->send();
 
                         $this->redirect(SkippedImportResource::getUrl('index'));
                     } else {
+                        $errorMsg = $record->error_type === 'missing_attachment'
+                            ? 'PDF allegato non trovato. Carica il file nella cartella pdf via FTP'
+                            : 'Impossibile elaborare il record.';
                         Notification::make()
                             ->title('Errore')
-                            ->body('Impossibile elaborare il record.')
+                            ->body($errorMsg)
                             ->danger()
                             ->send();
                     }

@@ -53,7 +53,7 @@ class SkippedImport extends Model
      * Priorità: email > SMS > skip
      *
      * @param bool $skipSend Se true, non invia email/SMS
-     * @return VideoCampaign|null
+     * @return VideoCampaign|null Ritorna null se non può essere elaborato (rimane in skipped)
      */
     public function retry(bool $skipSend = false): ?VideoCampaign
     {
@@ -73,6 +73,18 @@ class SkippedImport extends Model
         $sesso = $rowData['SEX'] ?? $rowData['sex'] ?? 'M';
         $fatturaWeb = strtoupper($rowData['fatturaWEB'] ?? $rowData['fatturaweb'] ?? $rowData['FATTURAWEB'] ?? 'NO');
 
+        // Se era un errore di allegato mancante, verifica che ora esista
+        $attachmentPath = null;
+        if ($this->error_type === 'missing_attachment') {
+            $codute = $rowData['CODUTE'] ?? $rowData['codute'] ?? null;
+            if ($codute) {
+                $attachmentPath = $this->findAttachmentPdf($codute);
+            }
+            if (!$attachmentPath) {
+                return null; // Allegato ancora mancante, rimane in skipped
+            }
+        }
+
         $tipoFinale = ($sesso === 'F') ? 2 : 1;
         $combination = $this->buildVideoCombination($offerCode->video_segment, $tipoFinale, $fatturaWeb === 'SI');
 
@@ -84,13 +96,11 @@ class SkippedImport extends Model
             'video_type' => $offerCode->type,
             'offer_code' => $offerCode->code,
             'offer_name' => $offerCode->offer_name,
+            'attachment_path' => $attachmentPath,
         ]);
 
-        // Aggiorna lo stato
-        $this->update([
-            'status' => 'processed',
-            'video_campaign_id' => $campaign->id,
-        ]);
+        // Elimina il record skipped (ora esiste in video_campaigns)
+        $this->delete();
 
         // Check if video already exists
         $existing = $campaign->findExistingVideo();
@@ -121,11 +131,29 @@ class SkippedImport extends Model
         }
     }
 
-    protected function buildVideoCombination(string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array
+    protected function findAttachmentPdf(string $codute): ?string
+    {
+        $pdfDir = storage_path('app/public/csv/pdf');
+
+        if (!is_dir($pdfDir)) {
+            return null;
+        }
+
+        $pattern = $pdfDir . '/*_' . $codute . '.pdf';
+        $files = glob($pattern);
+
+        if (empty($files)) {
+            return null;
+        }
+
+        return 'csv/pdf/' . basename($files[0]);
+    }
+
+    protected function buildVideoCombination(?string $videoSegment, int $tipoFinale, bool $hasFatturaWeb = false): array
     {
         $combination = [
             'benvenuto',
-            $videoSegment,
+            $videoSegment ?? '__DYNAMIC_OFFER__',
         ];
 
         if (!$hasFatturaWeb) {

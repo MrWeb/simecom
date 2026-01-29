@@ -27,6 +27,7 @@ class LandingController extends Controller
             'campaign' => $campaign,
             'videoUrl' => $campaign->getVideoUrl(),
             'redirectLink' => $redirectLink,
+            'attachmentUrl' => $campaign->getAttachmentUrl(),
         ]);
     }
 }

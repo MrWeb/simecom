@@ -19,6 +19,7 @@ class VideoCampaign extends Model
         'offer_name',
         'video_hash',
         'video_path',
+        'attachment_path',
         'video_status',
         'email_status',
         'email_sent_at',
@@ -148,5 +149,28 @@ class VideoCampaign extends Model
     public function scopeEmailPending($query)
     {
         return $query->where('email_status', 'pending');
+    }
+
+    public function hasAttachment(): bool
+    {
+        return !empty($this->attachment_path);
+    }
+
+    public function getAttachmentFullPath(): ?string
+    {
+        if (!$this->hasAttachment()) {
+            return null;
+        }
+
+        return storage_path('app/public/' . $this->attachment_path);
+    }
+
+    public function getAttachmentUrl(): ?string
+    {
+        if (!$this->hasAttachment()) {
+            return null;
+        }
+
+        return asset('storage/' . $this->attachment_path);
     }
 }

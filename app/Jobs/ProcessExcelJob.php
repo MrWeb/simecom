@@ -26,6 +26,8 @@ class ProcessExcelJob implements ShouldQueue
 
     public function handle(): void
     {
+        $filename = preg_replace('/\.back$/', '', basename($this->filePath));
+        $hasAttachments = str_ends_with($filename, '_allegati.csv');
         // Supporta sia path assoluti che relativi a storage/app
         $fullPath = str_starts_with($this->filePath, '/')
             ? $this->filePath
@@ -52,7 +54,7 @@ class ProcessExcelJob implements ShouldQueue
             $rowNumber = $rowIndex + 2; // +2 perché: +1 per header, +1 perché gli array partono da 0
 
             try {
-                $campaign = $this->processRow($row, $headerMap, $header, $sourceFileName, $rowNumber);
+                $campaign = $this->processRow($row, $headerMap, $header, $sourceFileName, $rowNumber, $hasAttachments);
 
                 if ($campaign) {
                     $processed++;
@@ -87,7 +89,7 @@ class ProcessExcelJob implements ShouldQueue
         ]);
     }
 
-    protected function processRow(array $row, array $headerMap, array $header, string $sourceFile, int $rowNumber): ?VideoCampaign
+    protected function processRow(array $row, array $headerMap, array $header, string $sourceFile, int $rowNumber, bool $hasAttachments): ?VideoCampaign
     {
         // Mappatura colonne dal file Simecom
         $email = $row[$headerMap['MAIL'] ?? $headerMap['mail'] ?? 0] ?? null;
@@ -98,6 +100,9 @@ class ProcessExcelJob implements ShouldQueue
 
         // Parsing telefono - supporta varie varianti di nome colonna
         $phone = $this->extractPhone($row, $headerMap);
+
+        // Estrai CODUTE per allegati PDF
+        $codute = $row[$headerMap['CODUTE'] ?? $headerMap['codute'] ?? -1] ?? null;
 
         $customerName = trim("{$nome} {$cognome}");
 
@@ -148,6 +153,40 @@ class ProcessExcelJob implements ShouldQueue
         // Costruisci la combinazione video
         $combination = $this->buildVideoCombination($offerCode->video_segment, $tipoFinale, $fatturaWeb === 'SI');
 
+        // Cerca allegato PDF se il file è di tipo allegati
+        $attachmentPath = null;
+        if ($hasAttachments) {
+            if (empty($codute)) {
+                SkippedImport::create([
+                    'source_file' => $sourceFile,
+                    'row_number' => $rowNumber,
+                    'row_data' => $rowData,
+                    'error_type' => 'missing_attachment',
+                    'offer_code' => $codiceOfferta ?: null,
+                    'email' => $email ?: null,
+                    'phone' => $phone ?: null,
+                    'customer_name' => $customerName ?: null,
+                ]);
+                return null;
+            }
+
+            $attachmentPath = $this->findAttachmentPdf($codute);
+
+            if (!$attachmentPath) {
+                SkippedImport::create([
+                    'source_file' => $sourceFile,
+                    'row_number' => $rowNumber,
+                    'row_data' => $rowData,
+                    'error_type' => 'missing_attachment',
+                    'offer_code' => $codiceOfferta ?: null,
+                    'email' => $email ?: null,
+                    'phone' => $phone ?: null,
+                    'customer_name' => $customerName ?: null,
+                ]);
+                return null;
+            }
+        }
+
         return VideoCampaign::create([
             'email' => $email ?: null,
             'phone' => $phone ?: null,
@@ -156,6 +195,7 @@ class ProcessExcelJob implements ShouldQueue
             'video_type' => $offerCode->type,
             'offer_code' => $offerCode->code,
             'offer_name' => $offerCode->offer_name,
+            'attachment_path' => $attachmentPath,
         ]);
     }
 
@@ -224,6 +264,26 @@ class ProcessExcelJob implements ShouldQueue
 
         // Per Excel usa Maatwebsite
         return Excel::toArray(null, $fullPath)[0] ?? [];
+    }
+
+    protected function findAttachmentPdf(string $codute): ?string
+    {
+        $pdfDir = storage_path('app/public/csv/pdf');
+
+        if (!is_dir($pdfDir)) {
+            return null;
+        }
+
+        // Cerca file che terminano con _{CODUTE}.pdf
+        $pattern = $pdfDir . '/*_' . $codute . '.pdf';
+        $files = glob($pattern);
+
+        if (empty($files)) {
+            return null;
+        }
+
+        // Restituisce il path relativo a storage/app/public
+        return 'csv/pdf/' . basename($files[0]);
     }
 
     protected function readCsv(string $fullPath): array

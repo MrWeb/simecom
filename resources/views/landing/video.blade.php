@@ -125,6 +125,33 @@
             display: none !important;
         }
 
+        .attachment-section {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #1e3a5f;
+            padding: 14px 32px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
         .footer {
             text-align: center;
             margin-top: 30px;
@@ -174,6 +201,14 @@
                 Il tuo browser non supporta il tag video.
             </video>
         </div>
+
+        @if($attachmentUrl)
+        <div class="attachment-section">
+            <a href="{{ $attachmentUrl }}" class="download-btn" download="Lettera_Benvenuto.pdf">
+                Scarica la tua Lettera di Benvenuto
+            </a>
+        </div>
+        @endif
 
         <div class="footer">
             <p>Simecom S.R.L. – soggetta a direzione e coordinamento di Sime Partecipazioni S.p.A.<br>

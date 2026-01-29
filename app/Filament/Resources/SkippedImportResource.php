@@ -34,12 +34,13 @@ class SkippedImportResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema
-            ->columns(4)
+            ->columns(8)
             ->components([
                 Section::make('Dati Cliente')
                     ->schema([
                         Components\TextInput::make('email')
                             ->email()
+                            ->nullable()
                             ->label('Email'),
                         Components\TextInput::make('phone')
                             ->label('Telefono'),
@@ -64,8 +65,9 @@ class SkippedImportResource extends Resource
                             })
                             ->searchable(),
                     ])
-                    ->columnSpan(3),
+                    ->columnSpan(5),
                 Section::make('Informazioni Import')
+                    ->columnSpan(3)
                     ->schema([
                         Components\TextInput::make('source_file')
                             ->label('File Sorgente')
@@ -121,12 +123,14 @@ class SkippedImportResource extends Resource
                         'missing_email' => 'danger',
                         'missing_contact' => 'danger',
                         'missing_offer_code' => 'warning',
+                        'missing_attachment' => 'warning',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'missing_email' => 'Email mancante',
                         'missing_contact' => 'Email e telefono mancanti',
                         'missing_offer_code' => 'Codice offerta non trovato',
+                        'missing_attachment' => 'PDF allegato non trovato',
                         default => $state,
                     }),
                 TextColumn::make('status')
@@ -160,6 +164,7 @@ class SkippedImportResource extends Resource
                         'missing_email' => 'Email mancante',
                         'missing_contact' => 'Email e telefono mancanti',
                         'missing_offer_code' => 'Codice offerta non trovato',
+                        'missing_attachment' => 'PDF allegato non trovato',
                     ]),
                 SelectFilter::make('status')
                     ->label('Stato')
@@ -211,9 +216,12 @@ class SkippedImportResource extends Resource
                                 ->success()
                                 ->send();
                         } else {
+                            $errorMsg = $record->error_type === 'missing_attachment'
+                                ? 'PDF allegato non trovato.'
+                                : 'Impossibile elaborare il record.';
                             Notification::make()
                                 ->title('Errore')
-                                ->body('Impossibile elaborare il record.')
+                                ->body($errorMsg)
                                 ->danger()
                                 ->send();
                         }
