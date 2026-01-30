@@ -127,8 +127,10 @@ class VideoService
         $cleanText = str_replace(["\r\n", "\r", "\n"], " ", $text);
         $cleanText = trim(preg_replace('/\s+/', ' ', $cleanText));
 
-        // Dividi in parole
-        $words = explode(' ', $cleanText);
+        // Dividi in parole, mantenendo il contenuto tra parentesi insieme
+        // Es: "PLACET VAR (Ex Tutela) P.IVA" -> ["PLACET", "VAR", "(Ex Tutela)", "P.IVA"]
+        preg_match_all('/\([^)]+\)|[^\s()]+/', $cleanText, $matches);
+        $words = $matches[0];
         $totalLines = count($words);
 
         // Calcola posizione Y iniziale per centrare verticalmente
