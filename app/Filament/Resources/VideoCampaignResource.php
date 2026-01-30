@@ -206,6 +206,33 @@ class VideoCampaignResource extends Resource
                     ]),
             ])
             ->actions([
+                Action::make('edit_contact')
+                    ->label('Modifica')
+                    ->icon('heroicon-o-pencil')
+                    ->color('gray')
+                    ->modalWidth('sm')
+                    ->fillForm(fn (VideoCampaign $record): array => [
+                        'email' => $record->email,
+                        'phone' => $record->phone,
+                    ])
+                    ->form([
+                        Components\TextInput::make('email')
+                            ->label('Email')
+                            ->email(),
+                        Components\TextInput::make('phone')
+                            ->label('Telefono')
+                            ->tel(),
+                    ])
+                    ->action(function (VideoCampaign $record, array $data): void {
+                        $record->update([
+                            'email' => $data['email'],
+                            'phone' => $data['phone'],
+                        ]);
+                        Notification::make()
+                            ->title('Recapito aggiornato')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('resend')
                     ->label('Rispedisci')
                     ->icon('heroicon-o-paper-airplane')
