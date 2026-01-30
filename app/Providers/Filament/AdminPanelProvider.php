@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
-            ->homeUrl('/admin/video-campaigns')
+            ->homeUrl('/admin')
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

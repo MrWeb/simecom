@@ -15,6 +15,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Actions\BulkAction;
+use Illuminate\Database\Eloquent\Collection;
 
 class VideoCampaignResource extends Resource
 {
@@ -249,7 +251,54 @@ class VideoCampaignResource extends Resource
                     ->url(fn (VideoCampaign $record): string => $record->getLandingUrl())
                     ->openUrlInNewTab(),
             ])
-            ->bulkActions([])
+            ->bulkActions([
+                BulkAction::make('retry_failed_sms')
+                    ->label('Riprova SMS falliti')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Riprova invio SMS')
+                    ->modalDescription('Verranno reinviati gli SMS per tutte le campagne selezionate con SMS fallito. Assicurati di aver ricaricato i crediti.')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records): void {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if ($record->sms_status === 'failed' && $record->video_status === 'ready' && !empty($record->phone)) {
+                                $record->update(['sms_status' => 'pending']);
+                                SendCampaignSmsJob::dispatch($record);
+                                $count++;
+                            }
+                        }
+                        Notification::make()
+                            ->title('SMS in coda')
+                            ->body("{$count} SMS verranno reinviati a breve.")
+                            ->success()
+                            ->send();
+                    }),
+                BulkAction::make('retry_failed_email')
+                    ->label('Riprova Email fallite')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Riprova invio Email')
+                    ->modalDescription('Verranno reinviate le email per tutte le campagne selezionate con email fallita.')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records): void {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if ($record->email_status === 'failed' && $record->video_status === 'ready' && !empty($record->email)) {
+                                $record->update(['email_status' => 'pending']);
+                                SendCampaignEmailJob::dispatch($record);
+                                $count++;
+                            }
+                        }
+                        Notification::make()
+                            ->title('Email in coda')
+                            ->body("{$count} email verranno reinviate a breve.")
+                            ->success()
+                            ->send();
+                    }),
+            ])
             ->recordUrl(null)
             ->defaultSort('created_at', 'desc');
     }
