@@ -133,8 +133,9 @@ class VideoService
         $words = $matches[0];
         $totalLines = count($words);
 
-        // Calcola posizione Y iniziale per centrare verticalmente
-        $startY = (1080 / 2) - (($totalLines - 1) * $lineHeight / 2);
+        // Calcola posizione Y iniziale per centrare verticalmente (con offset verso l'alto)
+        $verticalOffset = -80;
+        $startY = (1080 / 2) - (($totalLines - 1) * $lineHeight / 2) + $verticalOffset;
 
         // Costruisci i filtri drawtext per ogni parola
         $drawTextFilters = [];
