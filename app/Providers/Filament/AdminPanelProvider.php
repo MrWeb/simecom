@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
+            ->databaseNotifications()
             ->homeUrl('/admin')
             ->middleware([
                 EncryptCookies::class,
