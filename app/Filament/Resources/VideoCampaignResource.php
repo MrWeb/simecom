@@ -13,6 +13,7 @@ use Filament\Forms\Components;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Actions\BulkAction;
@@ -204,6 +205,39 @@ class VideoCampaignResource extends Resource
                         'sent' => 'Inviato',
                         'failed' => 'Fallito',
                     ]),
+                Filter::make('sent_at')
+                    ->label('Inviata il')
+                    ->form([
+                        Components\DatePicker::make('sent_from')
+                            ->label('Da'),
+                        Components\DatePicker::make('sent_until')
+                            ->label('A'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['sent_from'], fn ($q, $date) =>
+                                $q->where(fn ($q) =>
+                                    $q->whereDate('email_sent_at', '>=', $date)
+                                      ->orWhereDate('sms_sent_at', '>=', $date)
+                                )
+                            )
+                            ->when($data['sent_until'], fn ($q, $date) =>
+                                $q->where(fn ($q) =>
+                                    $q->whereDate('email_sent_at', '<=', $date)
+                                      ->orWhereDate('sms_sent_at', '<=', $date)
+                                )
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['sent_from'] ?? null) {
+                            $indicators[] = 'Da: ' . \Carbon\Carbon::parse($data['sent_from'])->format('d/m/Y');
+                        }
+                        if ($data['sent_until'] ?? null) {
+                            $indicators[] = 'A: ' . \Carbon\Carbon::parse($data['sent_until'])->format('d/m/Y');
+                        }
+                        return $indicators;
+                    }),
             ])
             ->actions([
                 Action::make('edit_contact')
