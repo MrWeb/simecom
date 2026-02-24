@@ -27,6 +27,9 @@ class VideoCampaign extends Model
         'sms_status',
         'sms_sent_at',
         'opened_at',
+        'video_watched_seconds',
+        'video_duration',
+        'video_completed',
     ];
 
     protected $casts = [
@@ -34,6 +37,7 @@ class VideoCampaign extends Model
         'email_sent_at' => 'datetime',
         'sms_sent_at' => 'datetime',
         'opened_at' => 'datetime',
+        'video_completed' => 'boolean',
     ];
 
     /**

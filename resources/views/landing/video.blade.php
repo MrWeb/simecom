@@ -222,7 +222,70 @@
         const wrapper = document.getElementById('videoWrapper');
         const playOverlay = document.getElementById('playOverlay');
         const redirectLink = @json($redirectLink);
+        const trackUrl = @json(route('video.track', $campaign->uuid));
         let isClickable = false;
+
+        // --- Video Watch Tracking ---
+        let lastTrackedSecond = 0;
+        let trackingInterval = null;
+
+        function sendTrackingData(completed = false) {
+            const seconds = Math.floor(video.currentTime);
+            const duration = Math.floor(video.duration) || 0;
+
+            if (seconds <= lastTrackedSecond && !completed) return;
+            lastTrackedSecond = seconds;
+
+            const payload = JSON.stringify({
+                watched_seconds: seconds,
+                duration: duration,
+                completed: completed,
+            });
+
+            if (navigator.sendBeacon) {
+                const blob = new Blob([payload], { type: 'application/json' });
+                navigator.sendBeacon(trackUrl, blob);
+            } else {
+                fetch(trackUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: payload,
+                    keepalive: true,
+                });
+            }
+        }
+
+        video.addEventListener('play', function() {
+            if (!trackingInterval) {
+                trackingInterval = setInterval(() => sendTrackingData(false), 5000);
+            }
+        });
+
+        video.addEventListener('pause', function() {
+            sendTrackingData(false);
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+        });
+
+        video.addEventListener('ended', function() {
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+            sendTrackingData(true);
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                sendTrackingData(false);
+            }
+        });
+
+        window.addEventListener('beforeunload', function() {
+            sendTrackingData(false);
+        });
+        // --- Fine Tracking ---
 
         // Tenta autoplay con audio
         const playPromise = video.play();

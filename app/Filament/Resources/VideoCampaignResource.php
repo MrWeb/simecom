@@ -181,6 +181,19 @@ class VideoCampaignResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->placeholder('Mai'),
+                TextColumn::make('video_watched_seconds')
+                    ->label('Visto')
+                    ->formatStateUsing(function (int $state): string {
+                        if ($state === 0) return '-';
+                        $min = intdiv($state, 60);
+                        $sec = $state % 60;
+                        return $min > 0 ? "{$min}m {$sec}s" : "{$sec}s";
+                    })
+                    ->sortable(),
+                IconColumn::make('video_completed')
+                    ->label('Completato')
+                    ->boolean()
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('video_status')
